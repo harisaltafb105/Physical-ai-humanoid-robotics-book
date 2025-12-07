@@ -1,0 +1,121 @@
+/**
+ * Custom CSS for Physical AI & Humanoid Robotics Book
+ * Theme colors inspired by Physical AI aesthetics
+ */
+
+:root {
+  /* Physical AI Theme Colors */
+  --ifm-color-primary: #88C0D0;
+  --ifm-color-primary-dark: #6cb4c7;
+  --ifm-color-primary-darker: #5dacc2;
+  --ifm-color-primary-darkest: #3d96b3;
+  --ifm-color-primary-light: #a4ccd9;
+  --ifm-color-primary-lighter: #b3d4de;
+  --ifm-color-primary-lightest: #d1e4ea;
+
+  /* Background colors */
+  --ifm-background-color: #ffffff;
+  --ifm-background-surface-color: #f8f9fa;
+
+  /* Code block colors */
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(136, 192, 208, 0.1);
+}
+
+/* Dark mode overrides */
+[data-theme='dark'] {
+  --ifm-color-primary: #A3BE8C;
+  --ifm-color-primary-dark: #92b377;
+  --ifm-color-primary-darker: #88ad6a;
+  --ifm-color-primary-darkest: #6e9550;
+  --ifm-color-primary-light: #b4c9a1;
+  --ifm-color-primary-lighter: #bed4ae;
+  --ifm-color-primary-lightest: #dbe8d1;
+
+  /* Nord-inspired dark background */
+  --ifm-background-color: #2E3440;
+  --ifm-background-surface-color: #3B4252;
+
+  --docusaurus-highlighted-code-line-bg: rgba(163, 190, 140, 0.1);
+}
+
+/* Responsive breakpoints */
+@media (max-width: 768px) {
+  /* Mobile styles */
+  :root {
+    --ifm-font-size-base: 16px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  /* Tablet styles */
+  :root {
+    --ifm-font-size-base: 17px;
+  }
+}
+
+@media (min-width: 1024px) {
+  /* Desktop styles */
+  :root {
+    --ifm-font-size-base: 18px;
+  }
+}
+
+/* Code block enhancements */
+code {
+  border-radius: 4px;
+  padding: 0.1rem 0.3rem;
+  background-color: var(--ifm-code-background);
+}
+
+pre code {
+  padding: 0;
+  background-color: transparent;
+}
+
+/* Custom admonitions for robotics content */
+.admonition-ros2 {
+  border-left-color: #88C0D0;
+}
+
+.admonition-hardware {
+  border-left-color: #A3BE8C;
+}
+
+.admonition-simulation {
+  border-left-color: #EBCB8B;
+}
+
+/* Table styling for hardware comparisons */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+}
+
+th {
+  background-color: var(--ifm-color-primary);
+  color: white;
+  padding: 0.75rem;
+}
+
+td {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--ifm-table-border-color);
+}
+
+/* Glossary term styling */
+.glossary-term {
+  font-weight: bold;
+  color: var(--ifm-color-primary);
+}
+
+/* Chapter navigation enhancements */
+.pagination-nav__link {
+  border-radius: 8px;
+  transition: transform 0.2s;
+}
+
+.pagination-nav__link:hover {
+  transform: translateY(-2px);
+}

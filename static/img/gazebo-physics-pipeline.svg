@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500">
+  <defs>
+    <style>
+      .box { fill: #88C0D0; stroke: #2E3440; stroke-width: 2; }
+      .sensor-box { fill: #A3BE8C; stroke: #2E3440; stroke-width: 2; }
+      .render-box { fill: #EBCB8B; stroke: #2E3440; stroke-width: 2; }
+      .text { fill: #2E3440; font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; }
+      .small-text { fill: #2E3440; font-family: Arial, sans-serif; font-size: 11px; }
+      .arrow { fill: none; stroke: #D08770; stroke-width: 2; marker-end: url(#arrowhead); }
+      .loop-arrow { fill: none; stroke: #5E81AC; stroke-width: 2; marker-end: url(#arrowhead2); stroke-dasharray: 4,2; }
+    </style>
+    <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#D08770" />
+    </marker>
+    <marker id="arrowhead2" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#5E81AC" />
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="400" y="25" text-anchor="middle" class="text" font-size="18">Gazebo Physics Simulation Pipeline</text>
+
+  <!-- Step 1: Physics Engine -->
+  <rect x="50" y="80" width="180" height="90" rx="8" class="box"/>
+  <text x="140" y="105" text-anchor="middle" class="text">1. Physics Engine</text>
+  <text x="140" y="125" text-anchor="middle" class="small-text">(ODE/Bullet/DART)</text>
+  <text x="140" y="145" text-anchor="middle" class="small-text">• Apply gravity</text>
+  <text x="140" y="160" text-anchor="middle" class="small-text">• Detect collisions</text>
+
+  <!-- Step 2: Update Positions -->
+  <rect x="310" y="80" width="180" height="90" rx="8" class="box"/>
+  <text x="400" y="105" text-anchor="middle" class="text">2. Update State</text>
+  <text x="400" y="125" text-anchor="middle" class="small-text">Integrate forces</text>
+  <text x="400" y="145" text-anchor="middle" class="small-text">• New positions</text>
+  <text x="400" y="160" text-anchor="middle" class="small-text">• New velocities</text>
+
+  <!-- Step 3: Rendering -->
+  <rect x="570" y="80" width="180" height="90" rx="8" class="render-box"/>
+  <text x="660" y="105" text-anchor="middle" class="text">3. Rendering</text>
+  <text x="660" y="125" text-anchor="middle" class="small-text">(OGRE Graphics)</text>
+  <text x="660" y="145" text-anchor="middle" class="small-text">• Display visuals</text>
+  <text x="660" y="160" text-anchor="middle" class="small-text">• Update camera</text>
+
+  <!-- Step 4: Sensor Simulation -->
+  <rect x="310" y="240" width="180" height="90" rx="8" class="sensor-box"/>
+  <text x="400" y="265" text-anchor="middle" class="text">4. Sensor Plugins</text>
+  <text x="400" y="285" text-anchor="middle" class="small-text">• LiDAR rays</text>
+  <text x="400" y="300" text-anchor="middle" class="small-text">• Camera images</text>
+  <text x="400" y="315" text-anchor="middle" class="small-text">• IMU readings</text>
+
+  <!-- Step 5: Publish to ROS 2 -->
+  <rect x="310" y="390" width="180" height="80" rx="8" style="fill: #B48EAD; stroke: #2E3440; stroke-width: 2;"/>
+  <text x="400" y="415" text-anchor="middle" class="text">5. Publish to ROS 2</text>
+  <text x="400" y="435" text-anchor="middle" class="small-text">Topics: /scan, /imu,</text>
+  <text x="400" y="450" text-anchor="middle" class="small-text">/camera/image_raw</text>
+
+  <!-- Arrows -->
+  <path d="M 230 125 L 310 125" class="arrow"/>
+  <path d="M 490 125 L 570 125" class="arrow"/>
+  <path d="M 660 170 L 660 200 L 400 200 L 400 240" class="arrow"/>
+  <path d="M 400 330 L 400 390" class="arrow"/>
+
+  <!-- Timestep loop -->
+  <path d="M 140 170 L 140 200 L 60 200 L 60 100" class="loop-arrow"/>
+  <text x="30" y="150" class="small-text" fill="#5E81AC">Loop every</text>
+  <text x="30" y="165" class="small-text" fill="#5E81AC">timestep</text>
+  <text x="30" y="180" class="small-text" fill="#5E81AC">(1-10 ms)</text>
+
+  <!-- Timestep indicator -->
+  <rect x="600" y="20" width="180" height="40" rx="4" style="fill: none; stroke: #5E81AC; stroke-width: 1; stroke-dasharray: 3,2;"/>
+  <text x="690" y="35" text-anchor="middle" class="small-text" fill="#5E81AC">Simulation Timestep</text>
+  <text x="690" y="50" text-anchor="middle" class="small-text" fill="#5E81AC">max_step_size = 0.001s (1 ms)</text>
+
+  <!-- Key notes -->
+  <text x="400" y="500" text-anchor="middle" class="small-text" font-weight="bold">Performance: Smaller timestep = More accurate, but slower computation</text>
+</svg>

@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="800" height="400">
+  <defs>
+    <style>
+      .node-box { fill: #88C0D0; stroke: #2E3440; stroke-width: 2; }
+      .topic-box { fill: #A3BE8C; stroke: #2E3440; stroke-width: 2; }
+      .text { fill: #2E3440; font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; }
+      .small-text { fill: #2E3440; font-family: Arial, sans-serif; font-size: 12px; }
+      .arrow { fill: none; stroke: #D08770; stroke-width: 3; marker-end: url(#arrowhead); }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#D08770" />
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="400" y="30" text-anchor="middle" class="text" font-size="20">ROS 2 Publisher-Subscriber Pattern</text>
+
+  <!-- Publisher Node -->
+  <rect x="50" y="150" width="200" height="100" rx="10" class="node-box"/>
+  <text x="150" y="185" text-anchor="middle" class="text">Publisher Node</text>
+  <text x="150" y="210" text-anchor="middle" class="small-text">hello_publisher</text>
+  <text x="150" y="230" text-anchor="middle" class="small-text">Publishes messages</text>
+
+  <!-- Topic (Middleware) -->
+  <ellipse cx="400" cy="200" rx="120" ry="60" class="topic-box"/>
+  <text x="400" y="195" text-anchor="middle" class="text">Topic</text>
+  <text x="400" y="215" text-anchor="middle" class="small-text">/hello_topic</text>
+
+  <!-- Subscriber Node -->
+  <rect x="550" y="150" width="200" height="100" rx="10" class="node-box"/>
+  <text x="650" y="185" text-anchor="middle" class="text">Subscriber Node</text>
+  <text x="650" y="210" text-anchor="middle" class="small-text">hello_subscriber</text>
+  <text x="650" y="230" text-anchor="middle" class="small-text">Receives messages</text>
+
+  <!-- Arrows -->
+  <path d="M 250 200 L 280 200" class="arrow"/>
+  <text x="265" y="195" text-anchor="middle" class="small-text">publish()</text>
+
+  <path d="M 520 200 L 550 200" class="arrow"/>
+  <text x="535" y="195" text-anchor="middle" class="small-text">subscribe()</text>
+
+  <!-- Data flow label -->
+  <text x="400" y="350" text-anchor="middle" class="small-text">Data flows from Publisher → Topic → Subscriber</text>
+  <text x="400" y="370" text-anchor="middle" class="small-text">Decoupled: Publisher and Subscriber don't know about each other</text>
+</svg>

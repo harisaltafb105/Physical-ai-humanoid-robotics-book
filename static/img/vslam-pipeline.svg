@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="800" height="450">
+  <defs>
+    <style>
+      .camera-box { fill: #88C0D0; stroke: #2E3440; stroke-width: 2; }
+      .feature-box { fill: #A3BE8C; stroke: #2E3440; stroke-width: 2; }
+      .pose-box { fill: #EBCB8B; stroke: #2E3440; stroke-width: 2; }
+      .map-box { fill: #B48EAD; stroke: #2E3440; stroke-width: 2; }
+      .text { fill: #2E3440; font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; }
+      .small-text { fill: #2E3440; font-family: Arial, sans-serif; font-size: 11px; }
+      .arrow { fill: none; stroke: #D08770; stroke-width: 2; marker-end: url(#arrowhead); }
+      .feedback-arrow { fill: none; stroke: #5E81AC; stroke-width: 2; marker-end: url(#arrowhead2); stroke-dasharray: 4,2; }
+    </style>
+    <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#D08770" />
+    </marker>
+    <marker id="arrowhead2" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#5E81AC" />
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="400" y="25" text-anchor="middle" class="text" font-size="18">Visual SLAM (cuVSLAM) Pipeline</text>
+
+  <!-- Step 1: Camera Input -->
+  <rect x="50" y="80" width="160" height="80" rx="8" class="camera-box"/>
+  <text x="130" y="105" text-anchor="middle" class="text">1. Cameras</text>
+  <text x="130" y="125" text-anchor="middle" class="small-text">Stereo or RGB-D</text>
+  <text x="130" y="140" text-anchor="middle" class="small-text">Left + Right</text>
+  <text x="130" y="155" text-anchor="middle" class="small-text">60-200 FPS</text>
+
+  <!-- Step 2: Feature Extraction -->
+  <rect x="290" y="80" width="160" height="80" rx="8" class="feature-box"/>
+  <text x="370" y="105" text-anchor="middle" class="text">2. Features</text>
+  <text x="370" y="125" text-anchor="middle" class="small-text">Extract keypoints</text>
+  <text x="370" y="140" text-anchor="middle" class="small-text">ORB, FAST, SIFT</text>
+  <text x="370" y="155" text-anchor="middle" class="small-text">500-1000 points</text>
+
+  <!-- Step 3: Feature Matching -->
+  <rect x="530" y="80" width="160" height="80" rx="8" class="feature-box"/>
+  <text x="610" y="105" text-anchor="middle" class="text">3. Matching</text>
+  <text x="610" y="125" text-anchor="middle" class="small-text">Track features</text>
+  <text x="610" y="140" text-anchor="middle" class="small-text">across frames</text>
+  <text x="610" y="155" text-anchor="middle" class="small-text">RANSAC filter</text>
+
+  <!-- Step 4: Pose Estimation -->
+  <rect x="290" y="240" width="160" height="80" rx="8" class="pose-box"/>
+  <text x="370" y="265" text-anchor="middle" class="text">4. Pose Estimate</text>
+  <text x="370" y="285" text-anchor="middle" class="small-text">3D position</text>
+  <text x="370" y="300" text-anchor="middle" class="small-text">(x, y, z, roll,</text>
+  <text x="370" y="315" text-anchor="middle" class="small-text">pitch, yaw)</text>
+
+  <!-- Step 5: Map Building -->
+  <rect x="530" y="240" width="160" height="80" rx="8" class="map-box"/>
+  <text x="610" y="265" text-anchor="middle" class="text">5. Map Update</text>
+  <text x="610" y="285" text-anchor="middle" class="small-text">3D point cloud</text>
+  <text x="610" y="300" text-anchor="middle" class="small-text">Landmarks</text>
+  <text x="610" y="315" text-anchor="middle" class="small-text">Occupancy grid</text>
+
+  <!-- Arrows -->
+  <path d="M 210 120 L 290 120" class="arrow"/>
+  <path d="M 450 120 L 530 120" class="arrow"/>
+  <path d="M 610 160 L 610 200 L 450 200 L 450 240" class="arrow"/>
+  <path d="M 450 280 L 530 280" class="arrow"/>
+
+  <!-- Loop Closure -->
+  <path d="M 690 280 Q 750 280 750 380 Q 750 400 370 400 Q 290 400 290 320" class="feedback-arrow"/>
+  <text x="720" y="340" class="small-text" fill="#5E81AC">Loop closure</text>
+  <text x="720" y="355" class="small-text" fill="#5E81AC">Correct drift</text>
+
+  <!-- Output: ROS 2 Topics -->
+  <rect x="50" y="240" width="160" height="80" rx="8" style="fill: #D08770; stroke: #2E3440; stroke-width: 2;"/>
+  <text x="130" y="265" text-anchor="middle" class="text" fill="white">Output: ROS 2</text>
+  <text x="130" y="285" text-anchor="middle" class="small-text" fill="white">/visual_slam/</text>
+  <text x="130" y="300" text-anchor="middle" class="small-text" fill="white">tracking/odometry</text>
+  <text x="130" y="315" text-anchor="middle" class="small-text" fill="white">1000 Hz pose rate</text>
+
+  <path d="M 290 280 L 210 280" class="arrow"/>
+
+  <!-- Performance note -->
+  <text x="400" y="445" text-anchor="middle" class="small-text" font-weight="bold">GPU Acceleration: 10x faster than CPU-based SLAM (ORB-SLAM3)</text>
+</svg>

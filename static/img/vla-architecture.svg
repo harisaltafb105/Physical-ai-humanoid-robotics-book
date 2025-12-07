@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500">
+  <defs>
+    <style>
+      .voice-box { fill: #88C0D0; stroke: #2E3440; stroke-width: 2; }
+      .vision-box { fill: #A3BE8C; stroke: #2E3440; stroke-width: 2; }
+      .llm-box { fill: #EBCB8B; stroke: #2E3440; stroke-width: 2; }
+      .action-box { fill: #D08770; stroke: #2E3440; stroke-width: 2; }
+      .text { fill: #2E3440; font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; }
+      .small-text { fill: #2E3440; font-family: Arial, sans-serif; font-size: 11px; }
+      .arrow { fill: none; stroke: #2E3440; stroke-width: 2; marker-end: url(#arrowhead); }
+      .feedback-arrow { fill: none; stroke: #BF616A; stroke-width: 2; marker-end: url(#arrowhead2); stroke-dasharray: 4,2; }
+    </style>
+    <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#2E3440" />
+    </marker>
+    <marker id="arrowhead2" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#BF616A" />
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="400" y="25" text-anchor="middle" class="text" font-size="20">Vision-Language-Action (VLA) System</text>
+
+  <!-- Human Input -->
+  <ellipse cx="100" cy="100" rx="60" ry="40" style="fill: #B48EAD; stroke: #2E3440; stroke-width: 2;"/>
+  <text x="100" y="95" text-anchor="middle" class="text" fill="white">Human</text>
+  <text x="100" y="110" text-anchor="middle" class="small-text" fill="white">Voice command</text>
+
+  <!-- Component 1: Speech Recognition -->
+  <rect x="220" y="70" width="140" height="60" rx="8" class="voice-box"/>
+  <text x="290" y="90" text-anchor="middle" class="text">Speech → Text</text>
+  <text x="290" y="110" text-anchor="middle" class="small-text">Whisper</text>
+  <text x="290" y="125" text-anchor="middle" class="small-text">"Pick up red box"</text>
+
+  <!-- Component 2: Vision Perception -->
+  <rect x="40" y="200" width="140" height="60" rx="8" class="vision-box"/>
+  <text x="110" y="220" text-anchor="middle" class="text">Vision</text>
+  <text x="110" y="240" text-anchor="middle" class="small-text">Camera + Isaac ROS</text>
+  <text x="110" y="255" text-anchor="middle" class="small-text">Detect objects</text>
+
+  <!-- Component 3: LLM Planning -->
+  <rect x="420" y="70" width="160" height="90" rx="8" class="llm-box"/>
+  <text x="500" y="95" text-anchor="middle" class="text">LLM Planner</text>
+  <text x="500" y="115" text-anchor="middle" class="small-text">GPT-4 / Claude</text>
+  <text x="500" y="130" text-anchor="middle" class="small-text">Plan: 1. Navigate</text>
+  <text x="500" y="145" text-anchor="middle" class="small-text">2. Grasp 3. Deliver</text>
+
+  <!-- Component 4: Action Execution -->
+  <rect x="420" y="200" width="160" height="60" rx="8" class="action-box"/>
+  <text x="500" y="220" text-anchor="middle" class="text" fill="white">Action Execution</text>
+  <text x="500" y="240" text-anchor="middle" class="small-text" fill="white">ROS 2: /cmd_vel</text>
+  <text x="500" y="255" text-anchor="middle" class="small-text" fill="white">/gripper_cmd</text>
+
+  <!-- Physical Robot -->
+  <rect x="660" y="200" width="120" height="60" rx="8" style="fill: #5E81AC; stroke: #2E3440; stroke-width: 2;"/>
+  <text x="720" y="220" text-anchor="middle" class="text" fill="white">Physical</text>
+  <text x="720" y="235" text-anchor="middle" class="text" fill="white">Robot</text>
+  <text x="720" y="255" text-anchor="middle" class="small-text" fill="white">🤖</text>
+
+  <!-- Arrows showing data flow -->
+  <path d="M 160 100 L 220 100" class="arrow"/>
+  <path d="M 360 100 L 420 100" class="arrow"/>
+  <path d="M 500 160 L 500 200" class="arrow"/>
+  <path d="M 580 230 L 660 230" class="arrow"/>
+
+  <!-- Vision to LLM -->
+  <path d="M 180 230 L 420 115" class="arrow"/>
+  <text x="280" y="160" class="small-text">Object locations</text>
+
+  <!-- Feedback loop -->
+  <path d="M 720 200 Q 720 170 720 140 Q 720 100 600 100" class="feedback-arrow"/>
+  <text x="650" y="130" class="small-text" fill="#BF616A">Success/Failure</text>
+  <text x="650" y="145" class="small-text" fill="#BF616A">feedback</text>
+
+  <!-- Key Paradigm Text -->
+  <rect x="50" y="340" width="700" height="120" rx="8" style="fill: none; stroke: #5E81AC; stroke-width: 2;"/>
+  <text x="400" y="365" text-anchor="middle" class="text" fill="#5E81AC">Vision-Language-Action Paradigm</text>
+  <text x="400" y="390" text-anchor="middle" class="small-text">• Vision: Cameras perceive environment (objects, obstacles)</text>
+  <text x="400" y="410" text-anchor="middle" class="small-text">• Language: LLM understands natural language commands</text>
+  <text x="400" y="430" text-anchor="middle" class="small-text">• Action: Robot executes planned tasks in physical world</text>
+  <text x="400" y="450" text-anchor="middle" class="small-text" font-weight="bold">Result: Anyone can control robots using voice — no programming needed!</text>
+</svg>
