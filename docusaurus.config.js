@@ -34,7 +34,7 @@ const config = {
       /** @type {import('@docusaurus/preset-classic').Options} */
       ({
         docs: {
-          routeBasePath: '/', // Make docs the site root (docs-only mode)
+          routeBasePath: '/docs', // Docs at /docs, allowing custom homepage at /
           sidebarPath: require.resolve('./sidebars.js'),
           // Remove this to remove the "edit this page" links
           editUrl:
@@ -88,8 +88,16 @@ const config = {
             title: 'Book',
             items: [
               {
-                label: 'Introduction',
+                label: 'Home',
                 to: '/',
+              },
+              {
+                label: 'Quick Start',
+                to: '/docs/quick-start',
+              },
+              {
+                label: 'Hardware Setup',
+                to: '/docs/hardware',
               },
             ],
           },
