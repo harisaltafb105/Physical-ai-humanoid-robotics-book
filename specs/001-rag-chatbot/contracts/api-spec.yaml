@@ -1,0 +1,633 @@
+openapi: 3.0.3
+info:
+  title: RAG Chatbot API
+  description: |
+    API for the Physical AI & Humanoid Robotics Book chatbot with authentication,
+    personalization, and Urdu translation features.
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+  - url: https://api.physical-ai-book.com
+    description: Production server
+
+tags:
+  - name: auth
+    description: Authentication and user management
+  - name: chat
+    description: Chatbot conversation endpoints
+  - name: content
+    description: Content personalization and translation
+  - name: embedding
+    description: Document chunking and embedding pipeline
+
+paths:
+  # ========== Authentication Endpoints ==========
+  /api/auth/signup:
+    post:
+      tags: [auth]
+      summary: Register a new user
+      description: Create a new user account with email, password, and background information
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, software_background, hardware_background]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                  example: SecurePass123!
+                software_background:
+                  type: string
+                  enum: [beginner, intermediate, advanced]
+                  example: beginner
+                hardware_background:
+                  type: string
+                  enum: [simulation-only, hobbyist, professional]
+                  example: hobbyist
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_id:
+                    type: string
+                    format: uuid
+                  email:
+                    type: string
+                  message:
+                    type: string
+                    example: User registered successfully
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: session_token=abc123; HttpOnly; Secure; SameSite=Strict
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/auth/signin:
+    post:
+      tags: [auth]
+      summary: Sign in an existing user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Successfully signed in
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_id:
+                    type: string
+                    format: uuid
+                  email:
+                    type: string
+                  software_background:
+                    type: string
+                  hardware_background:
+                    type: string
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/auth/signout:
+    post:
+      tags: [auth]
+      summary: Sign out the current user
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Successfully signed out
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+                example: session_token=; Max-Age=0
+
+  /api/auth/me:
+    get:
+      tags: [auth]
+      summary: Get current user profile
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ========== Chat Endpoints ==========
+  /api/chat/conversations:
+    get:
+      tags: [chat]
+      summary: List user conversations
+      description: Get all conversations for the authenticated user (returns empty for anonymous)
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+          description: Number of conversations to return
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+          description: Pagination offset
+      responses:
+        '200':
+          description: List of conversations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conversations:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Conversation'
+                  total:
+                    type: integer
+                  limit:
+                    type: integer
+                  offset:
+                    type: integer
+
+    post:
+      tags: [chat]
+      summary: Create a new conversation
+      description: Start a new chat conversation (authenticated or anonymous)
+      security:
+        - cookieAuth: []
+        - {}
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                language:
+                  type: string
+                  enum: [en, ur]
+                  default: en
+      responses:
+        '201':
+          description: Conversation created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+
+  /api/chat/conversations/{conversation_id}/messages:
+    get:
+      tags: [chat]
+      summary: Get messages in a conversation
+      parameters:
+        - in: path
+          name: conversation_id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messages:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Message'
+
+    post:
+      tags: [chat]
+      summary: Send a message to the chatbot
+      description: Send a user query and receive chatbot response with book citations
+      parameters:
+        - in: path
+          name: conversation_id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content:
+                  type: string
+                  maxLength: 10000
+                  example: How do I create a ROS2 publisher?
+                selected_context:
+                  type: object
+                  description: Optional text highlighted by user
+                  properties:
+                    text:
+                      type: string
+                      maxLength: 2000
+                    source_url:
+                      type: string
+                      format: uri
+                    chapter_id:
+                      type: string
+      responses:
+        '200':
+          description: Chatbot response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_message:
+                    $ref: '#/components/schemas/Message'
+                  assistant_message:
+                    $ref: '#/components/schemas/Message'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ========== Content Personalization & Translation ==========
+  /api/content/chapters/{chapter_id}/personalize:
+    post:
+      tags: [content]
+      summary: Personalize chapter content for user background
+      description: Regenerate chapter content tailored to user's skill level and hardware experience
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: chapter_id
+          required: true
+          schema:
+            type: string
+          example: module-1-ros2/01-ros2-basics-first-node
+      responses:
+        '200':
+          description: Personalized chapter content
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  chapter_id:
+                    type: string
+                  personalized_content:
+                    type: string
+                    description: Markdown content adapted to user background
+                  software_background:
+                    type: string
+                  hardware_background:
+                    type: string
+                  generated_at:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Chapter not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Personalization service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/content/chapters/{chapter_id}/translate:
+    post:
+      tags: [content]
+      summary: Translate chapter content to Urdu
+      description: Translate chapter to Urdu while preserving code blocks and technical terms
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: chapter_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [language]
+              properties:
+                language:
+                  type: string
+                  enum: [ur]
+                  example: ur
+      responses:
+        '200':
+          description: Translated chapter content
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  chapter_id:
+                    type: string
+                  language:
+                    type: string
+                  translated_content:
+                    type: string
+                    description: Markdown content in Urdu
+                  code_blocks_preserved:
+                    type: boolean
+                  generated_at:
+                    type: string
+                    format: date-time
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Chapter not found
+
+  /api/content/chapters/{chapter_id}/original:
+    get:
+      tags: [content]
+      summary: Get original chapter content
+      description: Retrieve the original English chapter content (no personalization/translation)
+      parameters:
+        - in: path
+          name: chapter_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Original chapter content
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  chapter_id:
+                    type: string
+                  content:
+                    type: string
+                    description: Original markdown content
+                  metadata:
+                    type: object
+                    properties:
+                      title:
+                        type: string
+                      module:
+                        type: string
+                      last_updated:
+                        type: string
+                        format: date-time
+
+  # ========== Embedding Pipeline (Admin/Internal) ==========
+  /api/admin/embeddings/pipeline:
+    post:
+      tags: [embedding]
+      summary: Run embedding pipeline for all book content
+      description: Chunk, embed, and upload all markdown files to Qdrant (admin only)
+      security:
+        - adminAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                force_update:
+                  type: boolean
+                  default: false
+                  description: Re-embed all chunks even if unchanged
+      responses:
+        '200':
+          description: Embedding pipeline completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  chunks_processed:
+                    type: integer
+                  chunks_created:
+                    type: integer
+                  chunks_updated:
+                    type: integer
+                  duration_seconds:
+                    type: number
+                  errors:
+                    type: array
+                    items:
+                      type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/admin/embeddings/status:
+    get:
+      tags: [embedding]
+      summary: Get embedding pipeline status
+      security:
+        - adminAuth: []
+      responses:
+        '200':
+          description: Pipeline status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_chunks:
+                    type: integer
+                  last_run:
+                    type: string
+                    format: date-time
+                  qdrant_collection_size:
+                    type: integer
+                  health:
+                    type: string
+                    enum: [healthy, degraded, unavailable]
+
+# ========== Components ==========
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: session_token
+    adminAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        software_background:
+          type: string
+          enum: [beginner, intermediate, advanced]
+        hardware_background:
+          type: string
+          enum: [simulation-only, hobbyist, professional]
+        created_at:
+          type: string
+          format: date-time
+
+    Conversation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+          nullable: true
+        title:
+          type: string
+          nullable: true
+        language:
+          type: string
+          enum: [en, ur]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        conversation_id:
+          type: string
+          format: uuid
+        role:
+          type: string
+          enum: [user, assistant]
+        content:
+          type: string
+        citations:
+          type: array
+          nullable: true
+          items:
+            $ref: '#/components/schemas/Citation'
+        created_at:
+          type: string
+          format: date-time
+
+    Citation:
+      type: object
+      properties:
+        chapter_id:
+          type: string
+        chapter_title:
+          type: string
+        section:
+          type: string
+        relevance_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        excerpt:
+          type: string
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+
+  responses:
+    BadRequest:
+      description: Invalid request parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
