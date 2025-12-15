@@ -32,6 +32,15 @@ lerna-debug.log*
 .DS_Store
 Thumbs.db
 
+# Windows reserved device names
+nul
+NUL
+CON
+PRN
+AUX
+COM[1-9]
+LPT[1-9]
+
 # Misc
 *.tsbuildinfo
 .eslintcache
@@ -55,3 +64,4 @@ backend/build/
 backend/*.egg-info/
 backend/.env
 backend/.env.local
+backend/.embedding_cache.json

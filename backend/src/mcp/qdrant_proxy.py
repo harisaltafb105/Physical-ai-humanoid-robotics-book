@@ -28,25 +28,27 @@ class QdrantProxy:
     ) -> List[ScoredPoint]:
         """
         Search for similar vectors in the collection.
-        
+
         Args:
             query_vector: Query embedding vector (1536 dimensions)
             limit: Maximum number of results to return
             filter_conditions: Optional Qdrant filter for metadata
-            
+
         Returns:
             List of ScoredPoint objects with payload and score
         """
         try:
-            results = self.client.search(
+            results = self.client.query_points(
                 collection_name=self.collection_name,
-                query_vector=query_vector,
+                query=query_vector,
                 limit=limit,
                 query_filter=filter_conditions
             )
-            logger.info(f"Qdrant search returned {len(results)} results")
-            return results
-            
+            # Extract points from QueryResponse
+            points = results.points if hasattr(results, 'points') else results
+            logger.info(f"Qdrant search returned {len(points)} results")
+            return points
+
         except Exception as e:
             logger.error(f"Qdrant search error: {e}")
             raise
@@ -76,20 +78,38 @@ class QdrantProxy:
     def get_collection_info(self) -> Dict[str, Any]:
         """
         Get collection information and statistics.
-        
+
         Returns:
             Dict with collection metadata
         """
         try:
             collection = self.client.get_collection(self.collection_name)
+            # Handle different Qdrant client versions
+            points_count = getattr(collection, 'points_count', 0)
+            if hasattr(collection, 'vectors_count'):
+                vectors_count = collection.vectors_count
+            else:
+                vectors_count = points_count  # Fallback
+
+            # Extract vector size from config
+            vector_size = None
+            if hasattr(collection, 'config') and hasattr(collection.config, 'params'):
+                params = collection.config.params
+                if hasattr(params, 'vectors'):
+                    if hasattr(params.vectors, 'size'):
+                        vector_size = params.vectors.size
+                    elif isinstance(params.vectors, dict):
+                        # Multi-vector config
+                        vector_size = next(iter(params.vectors.values())).size if params.vectors else None
+
             return {
                 "name": self.collection_name,
-                "vectors_count": collection.vectors_count,
-                "points_count": collection.points_count,
-                "status": collection.status,
-                "vector_size": collection.config.params.vectors.size
+                "vectors_count": vectors_count,
+                "points_count": points_count,
+                "status": str(collection.status) if hasattr(collection, 'status') else "unknown",
+                "vector_size": vector_size
             }
-            
+
         except Exception as e:
             logger.error(f"Qdrant get collection info error: {e}")
             raise

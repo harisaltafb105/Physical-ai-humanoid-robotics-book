@@ -50,8 +50,8 @@ def process_chapter(file_path: str, processed_hashes: dict) -> bool:
 
 def main():
     """Main embedding pipeline."""
-    docs_dir = Path("docs")
-    cache_file = Path("backend/.embedding_cache.json")
+    docs_dir = Path("..") / "docs"
+    cache_file = Path(".embedding_cache.json")
     
     if not docs_dir.exists():
         logger.error(f"Docs directory not found: {docs_dir}")

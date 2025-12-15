@@ -96,11 +96,11 @@ Book Content:
 """
         
         if selected_context:
-            system_message += f"
+            system_message += f"""
 
 User Selected Text:
 {selected_context}
-"
+"""
         
         # Build messages
         messages = [{"role": "system", "content": system_message}]

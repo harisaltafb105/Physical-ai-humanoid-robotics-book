@@ -1,6 +1,7 @@
 import re
 import logging
 import hashlib
+import uuid
 from pathlib import Path
 from typing import List, Dict, Any, Tuple
 from qdrant_client.models import PointStruct
@@ -75,7 +76,7 @@ class EmbeddingService:
                 code_language = self._extract_code_language(chunk_content) if has_code else None
 
                 chunk = DocumentChunk(
-                    chunk_id=f"{chapter_id}_{chunk_index}",
+                    chunk_id=str(uuid.uuid4()),
                     chapter_id=chapter_id,
                     module_name=module_name,
                     chapter_title=chapter_title,

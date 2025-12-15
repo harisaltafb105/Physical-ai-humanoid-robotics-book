@@ -28,7 +28,10 @@ export default function ChatWithBook({ fullScreen = false, dedicatedPage = false
   const clearSelection = () => {};
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const API_URL = process.env.API_URL || 'http://localhost:8000';
+  // Use window location to determine API URL, fallback to localhost for development
+  const API_URL = typeof window !== 'undefined' && (window as any).API_URL
+    ? (window as any).API_URL
+    : 'http://localhost:8000';
   
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
