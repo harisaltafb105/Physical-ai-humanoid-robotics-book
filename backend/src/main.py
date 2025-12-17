@@ -74,5 +74,7 @@ async def root():
     return {
         "message": "RAG Chatbot API",
         "version": "1.0.0",
-        "docs": "/docs"
+        "docs": "/docs",
+        "cors_origins": settings.cors_origins,
+        "cors_origins_list": settings.cors_origins_list
     }

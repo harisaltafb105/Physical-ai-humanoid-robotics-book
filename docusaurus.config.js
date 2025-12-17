@@ -17,8 +17,8 @@ const config = {
 
   // Custom fields - API configuration
   customFields: {
-    // API URL - set via environment variable DOCUSAURUS_API_URL or use default
-    apiUrl: process.env.DOCUSAURUS_API_URL || 'http://localhost:8000',
+    // API URL - defaults to Railway production, override with DOCUSAURUS_API_URL for local dev
+    apiUrl: process.env.DOCUSAURUS_API_URL || 'https://acceptable-alignment-production.up.railway.app',
   },
 
   // GitHub pages deployment config

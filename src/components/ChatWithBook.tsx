@@ -31,7 +31,24 @@ export default function ChatWithBook({ fullScreen = false, dedicatedPage = false
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   // Get API URL from Docusaurus config (set via DOCUSAURUS_API_URL env variable)
-  const API_URL = (siteConfig.customFields?.apiUrl as string) || 'http://localhost:8000';
+  const API_URL = (siteConfig.customFields?.apiUrl as string) || 'https://acceptable-alignment-production.up.railway.app';
+
+  // Debug logging and test backend connection
+  useEffect(() => {
+    console.log('[ChatBot] API URL:', API_URL);
+    console.log('[ChatBot] Site config:', siteConfig.customFields);
+
+    // Test backend connectivity
+    fetch(`${API_URL}/`)
+      .then(res => res.json())
+      .then(data => {
+        console.log('[ChatBot] Backend root response:', data);
+        console.log('[ChatBot] Backend CORS config:', data.cors_origins_list);
+      })
+      .catch(err => {
+        console.error('[ChatBot] Backend connectivity test failed:', err);
+      });
+  }, []);
   
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -47,21 +64,28 @@ export default function ChatWithBook({ fullScreen = false, dedicatedPage = false
   
   const createConversation = async () => {
     try {
+      console.log('[ChatBot] Creating conversation at:', `${API_URL}/api/chat/conversations`);
       const response = await fetch(`${API_URL}/api/chat/conversations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ language: 'en' })
       });
-      
+
+      console.log('[ChatBot] Response status:', response.status);
+      console.log('[ChatBot] Response ok:', response.ok);
+
       if (!response.ok) {
-        throw new Error('Failed to create conversation');
+        const errorText = await response.text();
+        console.error('[ChatBot] Error response:', errorText);
+        throw new Error(`Failed to create conversation: ${response.status} ${errorText}`);
       }
-      
+
       const data = await response.json();
+      console.log('[ChatBot] Conversation created:', data.conversation_id);
       setConversationId(data.conversation_id);
     } catch (err) {
+      console.error('[ChatBot] Error creating conversation:', err);
       setError('Failed to initialize chat. Please refresh the page.');
-      console.error('Error creating conversation:', err);
     }
   };
 
