@@ -1,8 +1,10 @@
 import os
 import sys
+import asyncio
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from sqlalchemy import create_engine, text
+from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy import text
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -13,7 +15,7 @@ if not DATABASE_URL:
     print("❌ DATABASE_URL not found in environment variables")
     sys.exit(1)
 
-engine = create_engine(DATABASE_URL)
+engine = create_async_engine(DATABASE_URL)
 
 schema_sql = """
 -- Users table
@@ -78,12 +80,17 @@ CREATE INDEX IF NOT EXISTS idx_personalized_user_chapter ON personalized_content
 CREATE INDEX IF NOT EXISTS idx_translated_chapter ON translated_content(chapter_id);
 """
 
-try:
-    with engine.connect() as conn:
-        conn.execute(text(schema_sql))
-        conn.commit()
+async def init_database():
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(text(schema_sql))
         print("✅ Database schema initialized successfully")
         print("Tables created: users, conversations, messages, personalized_content, translated_content")
-except Exception as e:
-    print(f"❌ Error initializing database: {e}")
-    sys.exit(1)
+    except Exception as e:
+        print(f"❌ Error initializing database: {e}")
+        sys.exit(1)
+    finally:
+        await engine.dispose()
+
+if __name__ == "__main__":
+    asyncio.run(init_database())

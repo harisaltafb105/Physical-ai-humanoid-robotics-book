@@ -6,7 +6,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 from .config import settings
-from .database import engine, Base
+from .database import engine, Base, DB_AVAILABLE
 from .mcp.server import mcp_server
 from .api.chat import router as chat_router
 
@@ -44,11 +44,20 @@ app.include_router(chat_router)
 async def startup_event():
     """Initialize services on startup."""
     logger.info("Starting RAG Chatbot API...")
-    
+
+    # Initialize database tables if DB is available
+    if DB_AVAILABLE and engine:
+        try:
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+            logger.info("Database tables initialized")
+        except Exception as e:
+            logger.warning(f"Could not initialize database tables: {e}")
+
     status = mcp_server.get_service_status()
     for service, msg in status.items():
         logger.info(f"{service}: {msg}")
-    
+
     logger.info("API startup complete")
 
 

@@ -1,6 +1,5 @@
-from sqlalchemy import create_engine
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
 from .config import settings
 import logging
 from typing import Dict, List, Any
@@ -9,22 +8,25 @@ import uuid
 
 logger = logging.getLogger(__name__)
 
-# Try to create SQLAlchemy engine
+# Try to create async SQLAlchemy engine
 DB_AVAILABLE = False
+engine = None
+SessionLocal = None
+
 try:
-    engine = create_engine(
+    engine = create_async_engine(
         settings.database_url,
-        pool_pre_ping=True,  # Verify connections before using
-        echo=settings.debug,  # Log SQL queries in debug mode
+        pool_pre_ping=True,
+        echo=settings.debug,
+        pool_size=5,
+        max_overflow=10,
     )
-    # Test connection
-    with engine.connect() as conn:
-        conn.execute("SELECT 1")
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    SessionLocal = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     DB_AVAILABLE = True
-    logger.info("Database connection established")
+    logger.info("Async database connection configured")
 except Exception as e:
     logger.warning(f"Database unavailable, using in-memory storage: {e}")
+    engine = None
     SessionLocal = None
 
 # Base class for models
@@ -82,14 +84,15 @@ memory_store = InMemoryStore()
 
 
 # Dependency for FastAPI routes
-def get_db():
-    """Get database session or in-memory store."""
-    if DB_AVAILABLE:
-        db = SessionLocal()
-        try:
-            yield db
-        finally:
-            db.close()
+async def get_db():
+    """Get async database session or in-memory store."""
+    if DB_AVAILABLE and SessionLocal:
+        async with SessionLocal() as session:
+            try:
+                yield session
+            except Exception as e:
+                await session.rollback()
+                raise
     else:
         # Return in-memory store
         yield memory_store

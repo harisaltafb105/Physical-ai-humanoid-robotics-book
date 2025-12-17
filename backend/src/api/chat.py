@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any, Union
 from datetime import datetime
@@ -55,7 +56,7 @@ class ConversationListItem(BaseModel):
 @router.post("/conversations", response_model=CreateConversationResponse)
 async def create_conversation(
     request: CreateConversationRequest,
-    db: Union[Session, InMemoryStore] = Depends(get_db)
+    db: Union[AsyncSession, InMemoryStore] = Depends(get_db)
 ):
     """
     Create a new conversation.
@@ -79,17 +80,17 @@ async def create_conversation(
                 created_at=conversation["created_at"].isoformat()
             )
         else:
-            # Use database
+            # Use async database
             conversation = Conversation(
                 id=uuid.UUID(conversation_id),
-                user_id=None,  # Will be set when auth is implemented
+                user_id=None,
                 title=request.title,
                 language=request.language
             )
 
             db.add(conversation)
-            db.commit()
-            db.refresh(conversation)
+            await db.commit()
+            await db.refresh(conversation)
 
             logger.info(f"Created conversation {conversation.id}")
 
@@ -101,7 +102,7 @@ async def create_conversation(
     except Exception as e:
         logger.error(f"Error creating conversation: {e}")
         if not isinstance(db, InMemoryStore):
-            db.rollback()
+            await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to create conversation"
@@ -112,7 +113,7 @@ async def create_conversation(
 async def send_message(
     conversation_id: str,
     request: SendMessageRequest,
-    db: Union[Session, InMemoryStore] = Depends(get_db)
+    db: Union[AsyncSession, InMemoryStore] = Depends(get_db)
 ):
     """
     Send a message and get AI response.
@@ -185,11 +186,10 @@ async def send_message(
                 assistant_message=MessageResponse(**assistant_message)
             )
         else:
-            # Use database
-            # Verify conversation exists
-            conversation = db.query(Conversation).filter(
-                Conversation.id == uuid.UUID(conversation_id)
-            ).first()
+            # Use async database
+            stmt = select(Conversation).where(Conversation.id == uuid.UUID(conversation_id))
+            result_db = await db.execute(stmt)
+            conversation = result_db.scalar_one_or_none()
 
             if not conversation:
                 raise HTTPException(
@@ -198,9 +198,11 @@ async def send_message(
                 )
 
             # Get conversation history
-            prev_messages = db.query(Message).filter(
+            stmt = select(Message).where(
                 Message.conversation_id == uuid.UUID(conversation_id)
-            ).order_by(Message.created_at.desc()).limit(10).all()
+            ).order_by(Message.created_at.desc()).limit(10)
+            result_db = await db.execute(stmt)
+            prev_messages = result_db.scalars().all()
 
             conversation_history = [
                 {"role": msg.role.value, "content": msg.content}
@@ -246,9 +248,9 @@ async def send_message(
             # Update conversation timestamp
             conversation.updated_at = datetime.utcnow()
 
-            db.commit()
-            db.refresh(user_message)
-            db.refresh(assistant_message)
+            await db.commit()
+            await db.refresh(user_message)
+            await db.refresh(assistant_message)
 
             logger.info(f"Sent message in conversation {conversation_id}")
 
@@ -262,7 +264,7 @@ async def send_message(
     except Exception as e:
         logger.error(f"Error sending message: {e}")
         if not isinstance(db, InMemoryStore):
-            db.rollback()
+            await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
@@ -272,7 +274,7 @@ async def send_message(
 @router.get("/conversations/{conversation_id}/messages", response_model=List[MessageResponse])
 async def get_messages(
     conversation_id: str,
-    db: Union[Session, InMemoryStore] = Depends(get_db)
+    db: Union[AsyncSession, InMemoryStore] = Depends(get_db)
 ):
     """Get all messages in a conversation."""
     try:
@@ -281,10 +283,12 @@ async def get_messages(
             messages = db.get_messages(conversation_id)
             return [MessageResponse(**msg) for msg in messages]
         else:
-            # Use database
-            messages = db.query(Message).filter(
+            # Use async database
+            stmt = select(Message).where(
                 Message.conversation_id == uuid.UUID(conversation_id)
-            ).order_by(Message.created_at.asc()).all()
+            ).order_by(Message.created_at.asc())
+            result = await db.execute(stmt)
+            messages = result.scalars().all()
 
             return [MessageResponse(**msg.to_dict()) for msg in messages]
 
@@ -298,11 +302,11 @@ async def get_messages(
 
 @router.get("/conversations", response_model=List[ConversationListItem])
 async def list_conversations(
-    db: Session = Depends(get_db)
+    db: Union[AsyncSession, InMemoryStore] = Depends(get_db)
 ):
     """
     List all conversations.
-    
+
     - For anonymous users, returns empty array
     - For authenticated users, returns their conversations (to be implemented)
     """
@@ -310,7 +314,7 @@ async def list_conversations(
         # For now, return empty for anonymous users
         # Will be filtered by user_id when auth is implemented
         return []
-        
+
     except Exception as e:
         logger.error(f"Error listing conversations: {e}")
         raise HTTPException(

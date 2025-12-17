@@ -55,13 +55,44 @@ export default function ChatWithBook({ fullScreen = false, dedicatedPage = false
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
   
-  // Create conversation on mount
+  // Load or create conversation on mount
   useEffect(() => {
-    if (!conversationId) {
-      createConversation();
-    }
+    const initializeChat = async () => {
+      // Check localStorage for existing conversation
+      const savedConversationId = localStorage.getItem('chat_conversation_id');
+
+      if (savedConversationId) {
+        console.log('[ChatBot] Found saved conversation:', savedConversationId);
+
+        // Try to load previous messages
+        try {
+          const response = await fetch(
+            `${API_URL}/api/chat/conversations/${savedConversationId}/messages`
+          );
+
+          if (response.ok) {
+            const previousMessages = await response.json();
+            console.log('[ChatBot] Loaded', previousMessages.length, 'previous messages');
+            setMessages(previousMessages);
+            setConversationId(savedConversationId);
+            return; // Success - exit early
+          } else {
+            console.warn('[ChatBot] Could not load previous messages, creating new conversation');
+            localStorage.removeItem('chat_conversation_id');
+          }
+        } catch (err) {
+          console.error('[ChatBot] Error loading messages:', err);
+          localStorage.removeItem('chat_conversation_id');
+        }
+      }
+
+      // No saved conversation or loading failed - create new one
+      await createConversation();
+    };
+
+    initializeChat();
   }, []);
-  
+
   const createConversation = async () => {
     try {
       console.log('[ChatBot] Creating conversation at:', `${API_URL}/api/chat/conversations`);
@@ -83,6 +114,9 @@ export default function ChatWithBook({ fullScreen = false, dedicatedPage = false
       const data = await response.json();
       console.log('[ChatBot] Conversation created:', data.conversation_id);
       setConversationId(data.conversation_id);
+
+      // Save to localStorage for persistence
+      localStorage.setItem('chat_conversation_id', data.conversation_id);
     } catch (err) {
       console.error('[ChatBot] Error creating conversation:', err);
       setError('Failed to initialize chat. Please refresh the page.');
@@ -159,10 +193,25 @@ export default function ChatWithBook({ fullScreen = false, dedicatedPage = false
     );
   }
 
+  const startNewChat = async () => {
+    localStorage.removeItem('chat_conversation_id');
+    setMessages([]);
+    setConversationId(null);
+    setError(null);
+    await createConversation();
+  };
+
   return (
     <div className={`chat-widget ${fullScreen ? 'fullscreen' : 'floating'}`}>
       <div className="chat-header">
         <h3>AI Book Assistant</h3>
+        <button
+          className="new-chat-button"
+          onClick={startNewChat}
+          title="Start new conversation"
+        >
+          New Chat
+        </button>
         {!fullScreen && (
           <button
             className="minimize-button"
