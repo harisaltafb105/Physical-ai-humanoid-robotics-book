@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import ChatMessage from './ChatMessage';
 import './ChatWithBook.css';
 
@@ -16,6 +17,7 @@ interface ChatWithBookProps {
 }
 
 export default function ChatWithBook({ fullScreen = false, dedicatedPage = false }: ChatWithBookProps) {
+  const { siteConfig } = useDocusaurusContext();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [conversationId, setConversationId] = useState<string | null>(null);
@@ -28,10 +30,8 @@ export default function ChatWithBook({ fullScreen = false, dedicatedPage = false
   const clearSelection = () => {};
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  // Use window location to determine API URL, fallback to localhost for development
-  const API_URL = typeof window !== 'undefined' && (window as any).API_URL
-    ? (window as any).API_URL
-    : 'http://localhost:8000';
+  // Get API URL from Docusaurus config (set via DOCUSAURUS_API_URL env variable)
+  const API_URL = (siteConfig.customFields?.apiUrl as string) || 'http://localhost:8000';
   
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {

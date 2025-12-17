@@ -15,6 +15,12 @@ const config = {
   // Set the /<baseUrl>/ pathname under which your site is served
   baseUrl: '/',
 
+  // Custom fields - API configuration
+  customFields: {
+    // API URL - set via environment variable DOCUSAURUS_API_URL or use default
+    apiUrl: process.env.DOCUSAURUS_API_URL || 'http://localhost:8000',
+  },
+
   // GitHub pages deployment config
   organizationName: 'username', // Usually your GitHub org/user name
   projectName: 'Physical-ai-human-robotics-book', // Usually your repo name

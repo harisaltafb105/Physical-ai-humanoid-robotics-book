@@ -114,7 +114,17 @@ Physical-ai-human-robotics-book/
 
 ## 🌐 Deployment
 
-### Automated (GitHub Actions)
+### Frontend (Vercel/GitHub Pages)
+
+#### Vercel Deployment
+
+1. Connect your GitHub repository to Vercel
+2. Set environment variable:
+   - **Name**: `DOCUSAURUS_API_URL`
+   - **Value**: `https://your-backend.railway.app` (your Railway backend URL)
+3. Deploy
+
+#### Automated GitHub Pages
 
 Every push to the `main` branch automatically triggers:
 1. Build process (`npm run build`)
@@ -122,11 +132,32 @@ Every push to the `main` branch automatically triggers:
 
 **Live site**: `https://username.github.io/Physical-ai-human-robotics-book/`
 
-### Manual Deployment
+#### Manual Deployment
 
 ```bash
 GIT_USER=username npm run deploy
 ```
+
+### Backend (Railway)
+
+The RAG chatbot backend is deployed separately on Railway:
+
+1. Navigate to the backend directory:
+   ```bash
+   cd backend
+   ```
+
+2. Set required environment variables on Railway:
+   - `OPENAI_API_KEY` - Your OpenAI API key
+   - `QDRANT_URL` - Your Qdrant instance URL
+   - `QDRANT_API_KEY` - Your Qdrant API key
+   - `DATABASE_URL` - PostgreSQL connection string
+   - `AUTH_SECRET` - Random 32-character secret
+   - `CORS_ORIGINS` - Set to `*` to allow all origins (already configured in code)
+
+3. Railway will automatically deploy when you push to the main branch
+
+**Note**: The default CORS configuration allows all origins (`*`) for easy deployment. For production, you can restrict this by setting `CORS_ORIGINS` to specific domains like `https://yourdomain.vercel.app,https://yourdomain.com`
 
 ## 🧪 Testing
 
