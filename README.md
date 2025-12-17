@@ -30,6 +30,29 @@ npm start
 
 This will open your browser at `http://localhost:3000` with hot-reload enabled.
 
+### Running with AI Chatbot (Local Development)
+
+To use the AI chatbot locally:
+
+1. **Start the backend** (in a separate terminal):
+```bash
+cd backend
+python -m uvicorn src.main:app --reload --port 8000
+```
+
+2. **Start the frontend**:
+```bash
+npm start
+```
+
+3. **Verify setup**:
+   - Frontend runs at `http://localhost:3000`
+   - Backend runs at `http://localhost:8000`
+   - Check browser console for `[ChatBot] API URL: http://localhost:8000`
+   - The chatbot should initialize without errors
+
+**Note**: The `.env` file is configured for local development (`DOCUSAURUS_API_URL=http://localhost:8000`). For production deployment on Vercel, set the environment variable to your Railway backend URL.
+
 ## 📚 Book Structure
 
 The book is organized into 4 progressive modules:

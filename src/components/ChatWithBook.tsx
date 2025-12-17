@@ -31,7 +31,7 @@ export default function ChatWithBook({ fullScreen = false, dedicatedPage = false
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   // Get API URL from Docusaurus config (set via DOCUSAURUS_API_URL env variable)
-  const API_URL = (siteConfig.customFields?.apiUrl as string) || 'https://acceptable-alignment-production.up.railway.app';
+  const API_URL = (siteConfig.customFields?.apiUrl as string) || 'http://localhost:8000';
 
   // Debug logging and test backend connection
   useEffect(() => {
