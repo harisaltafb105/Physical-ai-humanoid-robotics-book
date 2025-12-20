@@ -30,39 +30,96 @@ export default function ChatWithBook({ fullScreen = false, dedicatedPage = false
   const clearSelection = () => {};
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  // Get API URL from Docusaurus config (set via DOCUSAURUS_API_URL env variable)
-  const API_URL = (siteConfig.customFields?.apiUrl as string) || 'http://localhost:8000';
+
+  // ROBUST API URL RESOLUTION with environment detection and comprehensive logging
+  // This ensures the chatbot works on:
+  // - Local dev (localhost:8000)
+  // - Vercel production (with DOCUSAURUS_API_URL env var set to Railway backend)
+  // - Any machine/restart (via proper env var handling)
+  const getApiUrl = (): string => {
+    // 1. Try to get from Docusaurus config (built-in DOCUSAURUS_API_URL env var)
+    const configUrl = siteConfig.customFields?.apiUrl as string | undefined;
+
+    // 2. Detect environment
+    const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
+    const isProduction = hostname &&
+                        (hostname.includes('vercel.app') ||
+                         hostname.includes('railway.app') ||
+                         (!hostname.includes('localhost') && !hostname.includes('127.0.0.1')));
+
+    // 3. Default fallback for local development
+    const defaultLocalUrl = 'http://localhost:8000';
+
+    // 4. Determine final URL
+    let finalUrl: string;
+    if (configUrl) {
+      // PREFERRED: Config URL is set (from DOCUSAURUS_API_URL env var) - use it
+      finalUrl = configUrl;
+    } else if (!isProduction) {
+      // Development environment - use localhost
+      finalUrl = defaultLocalUrl;
+    } else {
+      // CRITICAL: Production environment but no config URL set!
+      console.error('[ChatBot] ✗✗✗ CRITICAL: Production environment detected but DOCUSAURUS_API_URL is not set!');
+      console.error('[ChatBot] Please set DOCUSAURUS_API_URL environment variable in Vercel dashboard');
+      console.error('[ChatBot] Example: DOCUSAURUS_API_URL=https://your-backend.railway.app');
+      // Fallback to localhost (will likely fail, but makes the error obvious)
+      finalUrl = defaultLocalUrl;
+    }
+
+    // 5. Debug logging
+    console.log('[ChatBot] === API URL Resolution ===');
+    console.log('[ChatBot] siteConfig.customFields:', siteConfig.customFields);
+    console.log('[ChatBot] configUrl from siteConfig:', configUrl);
+    console.log('[ChatBot] window.location.hostname:', hostname || 'SSR');
+    console.log('[ChatBot] isProduction:', isProduction);
+    console.log('[ChatBot] FINAL API_URL:', finalUrl);
+    if (!configUrl && isProduction) {
+      console.warn('[ChatBot] ⚠️  WARNING: Using fallback URL in production - this may not work!');
+    }
+    console.log('[ChatBot] ========================');
+
+    return finalUrl;
+  };
+
+  const API_URL = getApiUrl();
 
   // Debug logging and test backend connection
   useEffect(() => {
-    console.log('[ChatBot] API URL:', API_URL);
-    console.log('[ChatBot] Site config:', siteConfig.customFields);
+    console.log('[ChatBot] Component mounted - Testing backend connectivity...');
+    console.log('[ChatBot] Using API_URL:', API_URL);
 
     // Test backend connectivity
     fetch(`${API_URL}/`)
       .then(res => res.json())
       .then(data => {
+        console.log('[ChatBot] ✓ Backend connected successfully!');
         console.log('[ChatBot] Backend root response:', data);
         console.log('[ChatBot] Backend CORS config:', data.cors_origins_list);
       })
       .catch(err => {
-        console.error('[ChatBot] Backend connectivity test failed:', err);
+        console.error('[ChatBot] ✗ Backend connectivity test FAILED:', err);
+        console.error('[ChatBot] Make sure backend is running at:', API_URL);
       });
-  }, []);
-  
+  }, [API_URL]);
+
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-  
+
   // Load or create conversation on mount
   useEffect(() => {
     const initializeChat = async () => {
+      console.log('[ChatBot] === Initializing Chat ===');
+      console.log('[ChatBot] Current API_URL:', API_URL);
+
       // Check localStorage for existing conversation
       const savedConversationId = localStorage.getItem('chat_conversation_id');
 
       if (savedConversationId) {
-        console.log('[ChatBot] Found saved conversation:', savedConversationId);
+        console.log('[ChatBot] Found saved conversation ID:', savedConversationId);
+        console.log('[ChatBot] Attempting to load previous messages from:', `${API_URL}/api/chat/conversations/${savedConversationId}/messages`);
 
         // Try to load previous messages
         try {
@@ -70,33 +127,43 @@ export default function ChatWithBook({ fullScreen = false, dedicatedPage = false
             `${API_URL}/api/chat/conversations/${savedConversationId}/messages`
           );
 
+          console.log('[ChatBot] Load messages response status:', response.status);
+
           if (response.ok) {
             const previousMessages = await response.json();
-            console.log('[ChatBot] Loaded', previousMessages.length, 'previous messages');
+            console.log('[ChatBot] ✓ Successfully loaded', previousMessages.length, 'previous messages');
             setMessages(previousMessages);
             setConversationId(savedConversationId);
             return; // Success - exit early
           } else {
-            console.warn('[ChatBot] Could not load previous messages, creating new conversation');
+            console.warn('[ChatBot] ✗ Could not load previous messages (status:', response.status, '), creating new conversation');
             localStorage.removeItem('chat_conversation_id');
           }
         } catch (err) {
-          console.error('[ChatBot] Error loading messages:', err);
+          console.error('[ChatBot] ✗ Error loading messages:', err);
+          console.log('[ChatBot] Clearing saved conversation and creating new one');
           localStorage.removeItem('chat_conversation_id');
         }
+      } else {
+        console.log('[ChatBot] No saved conversation found in localStorage');
       }
 
       // No saved conversation or loading failed - create new one
+      console.log('[ChatBot] Creating new conversation...');
       await createConversation();
     };
 
     initializeChat();
-  }, []);
+  }, [API_URL]); // Re-initialize if API_URL changes
 
   const createConversation = async () => {
     try {
-      console.log('[ChatBot] Creating conversation at:', `${API_URL}/api/chat/conversations`);
-      const response = await fetch(`${API_URL}/api/chat/conversations`, {
+      const createUrl = `${API_URL}/api/chat/conversations`;
+      console.log('[ChatBot] === Creating New Conversation ===');
+      console.log('[ChatBot] POST to:', createUrl);
+      console.log('[ChatBot] Request body:', { language: 'en' });
+
+      const response = await fetch(createUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ language: 'en' })
@@ -107,18 +174,26 @@ export default function ChatWithBook({ fullScreen = false, dedicatedPage = false
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('[ChatBot] Error response:', errorText);
+        console.error('[ChatBot] ✗ Error response body:', errorText);
         throw new Error(`Failed to create conversation: ${response.status} ${errorText}`);
       }
 
       const data = await response.json();
-      console.log('[ChatBot] Conversation created:', data.conversation_id);
+      console.log('[ChatBot] ✓ Conversation created successfully!');
+      console.log('[ChatBot] Conversation ID:', data.conversation_id);
       setConversationId(data.conversation_id);
 
-      // Save to localStorage for persistence
+      // Save to localStorage for persistence across sessions
       localStorage.setItem('chat_conversation_id', data.conversation_id);
+      console.log('[ChatBot] Conversation ID saved to localStorage');
+      console.log('[ChatBot] ============================');
     } catch (err) {
-      console.error('[ChatBot] Error creating conversation:', err);
+      console.error('[ChatBot] ✗✗✗ CRITICAL ERROR creating conversation:', err);
+      console.error('[ChatBot] API_URL was:', API_URL);
+      console.error('[ChatBot] Please check:');
+      console.error('[ChatBot]   1. Backend is running');
+      console.error('[ChatBot]   2. CORS is configured correctly');
+      console.error('[ChatBot]   3. API_URL is correct for your environment');
       setError('Failed to initialize chat. Please refresh the page.');
     }
   };
@@ -188,7 +263,10 @@ export default function ChatWithBook({ fullScreen = false, dedicatedPage = false
         onClick={() => setIsMinimized(false)}
         title="Open AI Chatbot"
       >
-        Chat with Book
+        <svg className="chat-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M10 2C5.58172 2 2 5.58172 2 10C2 11.8919 2.64262 13.6314 3.72906 15.0079L2.37467 17.5042C2.21038 17.8109 2.37272 18.1909 2.70783 18.2888C2.79681 18.3144 2.89017 18.3199 2.98143 18.3049L6.85464 17.713C7.83011 18.2162 8.91885 18.5058 10.0725 18.5058C14.4908 18.5058 18.0725 14.924 18.0725 10.5058C18.0725 6.08747 14.4908 2.50575 10.0725 2.50575L10 2Z" fill="currentColor"/>
+        </svg>
+        <span>Chat with Book</span>
       </button>
     );
   }
@@ -204,35 +282,77 @@ export default function ChatWithBook({ fullScreen = false, dedicatedPage = false
   return (
     <div className={`chat-widget ${fullScreen ? 'fullscreen' : 'floating'}`}>
       <div className="chat-header">
-        <h3>AI Book Assistant</h3>
-        <button
-          className="new-chat-button"
-          onClick={startNewChat}
-          title="Start new conversation"
-        >
-          New Chat
-        </button>
-        {!fullScreen && (
+        <div className="chat-header-left">
+          <div className="bot-avatar">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2C10.8954 2 10 2.89543 10 4C10 5.10457 10.8954 6 12 6C13.1046 6 14 5.10457 14 4C14 2.89543 13.1046 2 12 2Z" fill="currentColor"/>
+              <path d="M7 8C5.34315 8 4 9.34315 4 11V17C4 18.6569 5.34315 20 7 20H17C18.6569 20 20 18.6569 20 17V11C20 9.34315 18.6569 8 17 8H7ZM9 13C9 12.4477 9.44772 12 10 12C10.5523 12 11 12.4477 11 13C11 13.5523 10.5523 14 10 14C9.44772 14 9 13.5523 9 13ZM14 12C13.4477 12 13 12.4477 13 13C13 13.5523 13.4477 14 14 14C14.5523 14 15 13.5523 15 13C15 12.4477 14.5523 12 14 12Z" fill="currentColor"/>
+            </svg>
+          </div>
+          <div className="chat-header-title">
+            <h3>AI Book Assistant</h3>
+            <span className="chat-status">Online</span>
+          </div>
+        </div>
+        <div className="chat-header-actions">
           <button
-            className="minimize-button"
-            onClick={() => setIsMinimized(true)}
+            className="new-chat-button"
+            onClick={startNewChat}
+            title="Start new conversation"
           >
-            &times;
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M8 3V13M3 8H13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            <span>New Chat</span>
           </button>
-        )}
+          {!fullScreen && (
+            <button
+              className="minimize-button"
+              onClick={() => setIsMinimized(true)}
+              title="Minimize chat"
+            >
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 10H16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
 
       {error && (
         <div className="chat-error">
-          {error}
-          <button onClick={() => setError(null)}>&times;</button>
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M10 18C14.4183 18 18 14.4183 18 10C18 5.58172 14.4183 2 10 2C5.58172 2 2 5.58172 2 10C2 14.4183 5.58172 18 10 18Z" fill="#ef4444"/>
+            <path d="M10 6V10M10 14H10.01" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+          <span>{error}</span>
+          <button onClick={() => setError(null)}>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+          </button>
         </div>
       )}
 
       <div className="chat-messages">
-        {messages.length === 0 && (
+        {messages.length === 0 && !loading && (
           <div className="welcome-message">
-            <p>Ask me anything about Physical AI, ROS2, Gazebo, Isaac Sim, or VLA!</p>
+            <div className="welcome-icon">
+              <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="32" cy="32" r="30" fill="#f0f4ff"/>
+                <path d="M32 16C29.7909 16 28 17.7909 28 20C28 22.2091 29.7909 24 32 24C34.2091 24 36 22.2091 36 20C36 17.7909 34.2091 16 32 16Z" fill="#667eea"/>
+                <path d="M22 28C18.6863 28 16 30.6863 16 34V44C16 47.3137 18.6863 50 22 50H42C45.3137 50 48 47.3137 48 44V34C48 30.6863 45.3137 28 42 28H22ZM26 38C26 36.8954 26.8954 36 28 36C29.1046 36 30 36.8954 30 38C30 39.1046 29.1046 40 28 40C26.8954 40 26 39.1046 26 38ZM36 36C34.8954 36 34 36.8954 34 38C34 39.1046 34.8954 40 36 40C37.1046 40 38 39.1046 38 38C38 36.8954 37.1046 36 36 36Z" fill="#667eea"/>
+              </svg>
+            </div>
+            <h4>Welcome to AI Book Assistant!</h4>
+            <p>Ask me anything about:</p>
+            <div className="welcome-topics">
+              <span className="topic-tag">Physical AI</span>
+              <span className="topic-tag">ROS 2</span>
+              <span className="topic-tag">Gazebo</span>
+              <span className="topic-tag">Isaac Sim</span>
+              <span className="topic-tag">VLA</span>
+            </div>
           </div>
         )}
 
@@ -248,7 +368,17 @@ export default function ChatWithBook({ fullScreen = false, dedicatedPage = false
 
         {loading && (
           <div className="loading-message">
-            <span className="loading-dots">Thinking...</span>
+            <div className="loading-avatar">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2C10.8954 2 10 2.89543 10 4C10 5.10457 10.8954 6 12 6C13.1046 6 14 5.10457 14 4C14 2.89543 13.1046 2 12 2Z" fill="currentColor"/>
+                <path d="M7 8C5.34315 8 4 9.34315 4 11V17C4 18.6569 5.34315 20 7 20H17C18.6569 20 20 18.6569 20 17V11C20 9.34315 18.6569 8 17 8H7ZM9 13C9 12.4477 9.44772 12 10 12C10.5523 12 11 12.4477 11 13C11 13.5523 10.5523 14 10 14C9.44772 14 9 13.5523 9 13ZM14 12C13.4477 12 13 12.4477 13 13C13 13.5523 13.4477 14 14 14C14.5523 14 15 13.5523 15 13C15 12.4477 14.5523 12 14 12Z" fill="currentColor"/>
+              </svg>
+            </div>
+            <div className="loading-dots-container">
+              <span className="loading-dot"></span>
+              <span className="loading-dot"></span>
+              <span className="loading-dot"></span>
+            </div>
           </div>
         )}
 
@@ -289,17 +419,27 @@ export default function ChatWithBook({ fullScreen = false, dedicatedPage = false
             placeholder={
               selectedText
                 ? "Ask a question about the selected text..."
-                : "Ask a question about the book..."
+                : "Type your message..."
             }
             disabled={loading || !conversationId}
-            rows={2}
+            rows={1}
           />
           <button
             className="send-button"
             onClick={sendMessage}
             disabled={loading || !input.trim() || !conversationId}
+            title="Send message"
           >
-            {loading ? 'Sending...' : 'Send'}
+            {loading ? (
+              <svg className="loading-spinner" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="2" opacity="0.25"/>
+                <path d="M10 2C14.4183 2 18 5.58172 18 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2 10L18 2L10 18L8 11L2 10Z" fill="currentColor"/>
+              </svg>
+            )}
           </button>
         </div>
       </div>
