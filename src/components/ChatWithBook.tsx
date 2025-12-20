@@ -31,58 +31,89 @@ export default function ChatWithBook({ fullScreen = false, dedicatedPage = false
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // ROBUST API URL RESOLUTION with environment detection and comprehensive logging
-  // This ensures the chatbot works on:
-  // - Local dev (localhost:8000)
-  // - Vercel production (with DOCUSAURUS_API_URL env var set to Railway backend)
-  // - Any machine/restart (via proper env var handling)
-  const getApiUrl = (): string => {
-    // 1. Try to get from Docusaurus config (built-in DOCUSAURUS_API_URL env var)
+  // API URL RESOLUTION - strict environment-based logic
+  // - localhost ONLY when hostname === "localhost"
+  // - Production MUST have DOCUSAURUS_API_URL env var, NO fallback
+  // - Missing production env var returns null to show clear error
+  const getApiUrl = (): string | null => {
+    // 1. Get from Docusaurus config (built-in DOCUSAURUS_API_URL env var)
     const configUrl = siteConfig.customFields?.apiUrl as string | undefined;
 
     // 2. Detect environment
     const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
-    const isProduction = hostname &&
-                        (hostname.includes('vercel.app') ||
-                         hostname.includes('railway.app') ||
-                         (!hostname.includes('localhost') && !hostname.includes('127.0.0.1')));
+    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
 
-    // 3. Default fallback for local development
-    const defaultLocalUrl = 'http://localhost:8000';
+    // 3. Determine final URL
+    let finalUrl: string | null;
 
-    // 4. Determine final URL
-    let finalUrl: string;
-    if (configUrl) {
-      // PREFERRED: Config URL is set (from DOCUSAURUS_API_URL env var) - use it
+    if (isLocalhost) {
+      // Local development - use localhost ONLY when hostname is localhost
+      finalUrl = 'http://localhost:8000';
+      console.log('[ChatBot] Local development detected - using localhost:8000');
+    } else if (configUrl) {
+      // Production with proper config - use environment variable
       finalUrl = configUrl;
-    } else if (!isProduction) {
-      // Development environment - use localhost
-      finalUrl = defaultLocalUrl;
+      console.log('[ChatBot] Production environment - using DOCUSAURUS_API_URL:', configUrl);
     } else {
-      // CRITICAL: Production environment but no config URL set!
+      // CRITICAL: Production without config - cannot initialize
       console.error('[ChatBot] ✗✗✗ CRITICAL: Production environment detected but DOCUSAURUS_API_URL is not set!');
-      console.error('[ChatBot] Please set DOCUSAURUS_API_URL environment variable in Vercel dashboard');
+      console.error('[ChatBot] Please set DOCUSAURUS_API_URL environment variable in your deployment dashboard');
       console.error('[ChatBot] Example: DOCUSAURUS_API_URL=https://your-backend.railway.app');
-      // Fallback to localhost (will likely fail, but makes the error obvious)
-      finalUrl = defaultLocalUrl;
+      console.error('[ChatBot] Hostname:', hostname);
+      finalUrl = null;
     }
 
-    // 5. Debug logging
+    // 4. Debug logging
     console.log('[ChatBot] === API URL Resolution ===');
-    console.log('[ChatBot] siteConfig.customFields:', siteConfig.customFields);
-    console.log('[ChatBot] configUrl from siteConfig:', configUrl);
-    console.log('[ChatBot] window.location.hostname:', hostname || 'SSR');
-    console.log('[ChatBot] isProduction:', isProduction);
-    console.log('[ChatBot] FINAL API_URL:', finalUrl);
-    if (!configUrl && isProduction) {
-      console.warn('[ChatBot] ⚠️  WARNING: Using fallback URL in production - this may not work!');
-    }
+    console.log('[ChatBot] Hostname:', hostname || 'SSR');
+    console.log('[ChatBot] Is Localhost:', isLocalhost);
+    console.log('[ChatBot] Config URL:', configUrl || 'NOT SET');
+    console.log('[ChatBot] FINAL API_URL:', finalUrl || 'NULL - MISSING CONFIG');
     console.log('[ChatBot] ========================');
 
     return finalUrl;
   };
 
   const API_URL = getApiUrl();
+
+  // If API_URL is null (production without env var), show configuration error
+  if (!API_URL) {
+    return (
+      <div className={`chat-widget ${fullScreen ? 'fullscreen' : 'floating'}`}>
+        <div className="chat-header">
+          <div className="chat-header-left">
+            <div className="bot-avatar">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2C10.8954 2 10 2.89543 10 4C10 5.10457 10.8954 6 12 6C13.1046 6 14 5.10457 14 4C14 2.89543 13.1046 2 12 2Z" fill="currentColor"/>
+                <path d="M7 8C5.34315 8 4 9.34315 4 11V17C4 18.6569 5.34315 20 7 20H17C18.6569 20 20 18.6569 20 17V11C20 9.34315 18.6569 8 17 8H7ZM9 13C9 12.4477 9.44772 12 10 12C10.5523 12 11 12.4477 11 13C11 13.5523 10.5523 14 10 14C9.44772 14 9 13.5523 9 13ZM14 12C13.4477 12 13 12.4477 13 13C13 13.5523 13.4477 14 14 14C14.5523 14 15 13.5523 15 13C15 12.4477 14.5523 12 14 12Z" fill="currentColor"/>
+              </svg>
+            </div>
+            <div className="chat-header-title">
+              <h3>AI Book Assistant</h3>
+              <span className="chat-status" style={{ color: '#ef4444' }}>Configuration Error</span>
+            </div>
+          </div>
+        </div>
+        <div className="chat-messages">
+          <div className="chat-error" style={{ margin: '20px', position: 'relative' }}>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M10 18C14.4183 18 18 14.4183 18 10C18 5.58172 14.4183 2 10 2C5.58172 2 2 5.58172 2 10C2 14.4183 5.58172 18 10 18Z" fill="#ef4444"/>
+              <path d="M10 6V10M10 14H10.01" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            <div>
+              <strong>Configuration Required</strong>
+              <p style={{ marginTop: '8px', fontSize: '14px' }}>
+                The chat service is not configured. Please set the <code>DOCUSAURUS_API_URL</code> environment variable in your deployment settings.
+              </p>
+              <p style={{ marginTop: '8px', fontSize: '12px', opacity: 0.8 }}>
+                Check the browser console for more details.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Debug logging and test backend connection
   useEffect(() => {
