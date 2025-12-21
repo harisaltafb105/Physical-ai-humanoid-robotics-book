@@ -31,53 +31,18 @@ export default function ChatWithBook({ fullScreen = false, dedicatedPage = false
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // API URL RESOLUTION - strict environment-based logic
-  // - localhost ONLY when hostname === "localhost"
-  // - Production MUST have DOCUSAURUS_API_URL env var, NO fallback
-  // - Missing production env var returns null to show clear error
-  const getApiUrl = (): string | null => {
-    // 1. Get from Docusaurus config (built-in DOCUSAURUS_API_URL env var)
-    const configUrl = siteConfig.customFields?.apiUrl as string | undefined;
+  // Get API URL from Docusaurus config (reads DOCUSAURUS_API_URL env var)
+  const configApiUrl = siteConfig.customFields?.apiUrl as string | undefined;
 
-    // 2. Detect environment
-    const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
-    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+  // Detect environment
+  const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
+  const isProduction = hostname !== 'localhost' && hostname !== '127.0.0.1' && hostname !== '';
 
-    // 3. Determine final URL
-    let finalUrl: string | null;
+  // Use localhost fallback for local development if env var not set
+  const API_URL = configApiUrl || (!isProduction ? 'http://localhost:8000' : undefined);
 
-    if (isLocalhost) {
-      // Local development - use localhost ONLY when hostname is localhost
-      finalUrl = 'http://localhost:8000';
-      console.log('[ChatBot] Local development detected - using localhost:8000');
-    } else if (configUrl) {
-      // Production with proper config - use environment variable
-      finalUrl = configUrl;
-      console.log('[ChatBot] Production environment - using DOCUSAURUS_API_URL:', configUrl);
-    } else {
-      // CRITICAL: Production without config - cannot initialize
-      console.error('[ChatBot] ✗✗✗ CRITICAL: Production environment detected but DOCUSAURUS_API_URL is not set!');
-      console.error('[ChatBot] Please set DOCUSAURUS_API_URL environment variable in your deployment dashboard');
-      console.error('[ChatBot] Example: DOCUSAURUS_API_URL=https://your-backend.railway.app');
-      console.error('[ChatBot] Hostname:', hostname);
-      finalUrl = null;
-    }
-
-    // 4. Debug logging
-    console.log('[ChatBot] === API URL Resolution ===');
-    console.log('[ChatBot] Hostname:', hostname || 'SSR');
-    console.log('[ChatBot] Is Localhost:', isLocalhost);
-    console.log('[ChatBot] Config URL:', configUrl || 'NOT SET');
-    console.log('[ChatBot] FINAL API_URL:', finalUrl || 'NULL - MISSING CONFIG');
-    console.log('[ChatBot] ========================');
-
-    return finalUrl;
-  };
-
-  const API_URL = getApiUrl();
-
-  // If API_URL is null (production without env var), show configuration error
-  if (!API_URL) {
+  // Show error if API URL is missing in production
+  if (isProduction && !API_URL) {
     return (
       <div className={`chat-widget ${fullScreen ? 'fullscreen' : 'floating'}`}>
         <div className="chat-header">
@@ -101,13 +66,20 @@ export default function ChatWithBook({ fullScreen = false, dedicatedPage = false
               <path d="M10 6V10M10 14H10.01" stroke="white" strokeWidth="2" strokeLinecap="round"/>
             </svg>
             <div>
-              <strong>Configuration Required</strong>
+              <strong>Missing Configuration</strong>
               <p style={{ marginTop: '8px', fontSize: '14px' }}>
-                The chat service is not configured. Please set the <code>DOCUSAURUS_API_URL</code> environment variable in your deployment settings.
+                The <code>DOCUSAURUS_API_URL</code> environment variable is not set.
               </p>
-              <p style={{ marginTop: '8px', fontSize: '12px', opacity: 0.8 }}>
-                Check the browser console for more details.
+              <p style={{ marginTop: '8px', fontSize: '13px', opacity: 0.9 }}>
+                Please set this in your Vercel dashboard:
               </p>
+              <ol style={{ marginTop: '8px', fontSize: '12px', opacity: 0.8, paddingLeft: '20px' }}>
+                <li>Go to Vercel project settings</li>
+                <li>Navigate to Environment Variables</li>
+                <li>Add: <code>DOCUSAURUS_API_URL</code></li>
+                <li>Set value to your Railway backend URL</li>
+                <li>Redeploy the application</li>
+              </ol>
             </div>
           </div>
         </div>

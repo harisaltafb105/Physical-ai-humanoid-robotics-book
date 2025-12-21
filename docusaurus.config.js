@@ -16,9 +16,11 @@ const config = {
   baseUrl: '/',
 
   // Custom fields - API configuration
+  // Read from DOCUSAURUS_API_URL environment variable
+  // Local: Set in .env file
+  // Production: Set in Vercel dashboard
   customFields: {
-    // API URL - defaults to localhost for dev, set DOCUSAURUS_API_URL env var for production
-    apiUrl: process.env.DOCUSAURUS_API_URL || 'http://localhost:8000',
+    apiUrl: process.env.DOCUSAURUS_API_URL,
   },
 
   // GitHub pages deployment config
