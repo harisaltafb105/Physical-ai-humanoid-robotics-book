@@ -16,11 +16,11 @@ const config = {
   baseUrl: '/',
 
   // Custom fields - API configuration
-  // Read from DOCUSAURUS_API_URL environment variable
+  // Read from NEXT_PUBLIC_API_URL environment variable
   // Local: Set in .env file
   // Production: Set in Vercel dashboard
   customFields: {
-    apiUrl: process.env.DOCUSAURUS_API_URL,
+    apiUrl: process.env.NEXT_PUBLIC_API_URL,
   },
 
   // GitHub pages deployment config

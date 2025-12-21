@@ -31,7 +31,7 @@ export default function ChatWithBook({ fullScreen = false, dedicatedPage = false
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Get API URL from Docusaurus config (reads DOCUSAURUS_API_URL env var)
+  // Get API URL from Docusaurus config (reads NEXT_PUBLIC_API_URL env var)
   const configApiUrl = siteConfig.customFields?.apiUrl as string | undefined;
 
   // Detect environment
@@ -68,7 +68,7 @@ export default function ChatWithBook({ fullScreen = false, dedicatedPage = false
             <div>
               <strong>Missing Configuration</strong>
               <p style={{ marginTop: '8px', fontSize: '14px' }}>
-                The <code>DOCUSAURUS_API_URL</code> environment variable is not set.
+                The <code>NEXT_PUBLIC_API_URL</code> environment variable is not set.
               </p>
               <p style={{ marginTop: '8px', fontSize: '13px', opacity: 0.9 }}>
                 Please set this in your Vercel dashboard:
@@ -76,7 +76,7 @@ export default function ChatWithBook({ fullScreen = false, dedicatedPage = false
               <ol style={{ marginTop: '8px', fontSize: '12px', opacity: 0.8, paddingLeft: '20px' }}>
                 <li>Go to Vercel project settings</li>
                 <li>Navigate to Environment Variables</li>
-                <li>Add: <code>DOCUSAURUS_API_URL</code></li>
+                <li>Add: <code>NEXT_PUBLIC_API_URL</code></li>
                 <li>Set value to your Railway backend URL</li>
                 <li>Redeploy the application</li>
               </ol>
