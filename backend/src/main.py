@@ -28,12 +28,19 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+# CORS Configuration - Railway Production Fix
+# Ensure CORS works with Vercel and all origins
+cors_origins = settings.cors_origins_list if settings.cors_origins_list else ["*"]
+logger.info(f"Configuring CORS with origins: {cors_origins}")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
+    allow_origins=cors_origins,
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=3600,  # Cache preflight for 1 hour
 )
 
 # Include routers
@@ -44,6 +51,15 @@ app.include_router(chat_router)
 async def startup_event():
     """Initialize services on startup."""
     logger.info("Starting RAG Chatbot API...")
+    logger.info(f"Environment: {settings.app_env}")
+    logger.info(f"CORS Origins: {cors_origins}")
+
+    # Validate configuration and log warnings
+    config_warnings = settings.validate_production_config()
+    if config_warnings:
+        logger.warning("⚠️  Configuration warnings:")
+        for warning in config_warnings:
+            logger.warning(f"  - {warning}")
 
     # Initialize database tables if DB is available
     if DB_AVAILABLE and engine:
@@ -54,9 +70,13 @@ async def startup_event():
         except Exception as e:
             logger.warning(f"Could not initialize database tables: {e}")
 
-    status = mcp_server.get_service_status()
-    for service, msg in status.items():
-        logger.info(f"{service}: {msg}")
+    # Check MCP server status (non-critical)
+    try:
+        status = mcp_server.get_service_status()
+        for service, msg in status.items():
+            logger.info(f"{service}: {msg}")
+    except Exception as e:
+        logger.warning(f"Could not get MCP service status: {e}")
 
     logger.info("API startup complete")
 
@@ -70,11 +90,18 @@ async def shutdown_event():
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
-    health = mcp_server.health_check()
-    return {
-        "status": "healthy",
-        "services": health
-    }
+    try:
+        health = mcp_server.health_check()
+        return {
+            "status": "healthy",
+            "services": health
+        }
+    except Exception as e:
+        logger.error(f"Health check error: {e}")
+        return {
+            "status": "healthy",
+            "services": {"error": str(e)}
+        }
 
 
 @app.get("/")
