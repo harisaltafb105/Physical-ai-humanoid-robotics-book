@@ -18,19 +18,31 @@ logger = logging.getLogger(__name__)
 
 limiter = Limiter(key_func=get_remote_address)
 
+# Create FastAPI app - use try/except for settings to ensure app always starts
+try:
+    debug_mode = settings.debug
+except Exception as e:
+    logger.warning(f"Could not read debug setting, using False: {e}")
+    debug_mode = False
+
 app = FastAPI(
     title="RAG Chatbot API",
     description="Physical AI & Humanoid Robotics Book Chatbot",
     version="1.0.0",
-    debug=settings.debug
+    debug=debug_mode
 )
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# CORS Configuration - Railway Production Fix
-# Ensure CORS works with Vercel and all origins
-cors_origins = settings.cors_origins_list if settings.cors_origins_list else ["*"]
+# CORS Configuration - CRITICAL: Must succeed even if settings fail
+# This MUST be configured immediately after app creation
+try:
+    cors_origins = settings.cors_origins_list if settings.cors_origins_list else ["*"]
+except Exception as e:
+    logger.warning(f"Failed to read CORS settings, using default ['*']: {e}")
+    cors_origins = ["*"]
+
 logger.info(f"Configuring CORS with origins: {cors_origins}")
 
 app.add_middleware(
@@ -43,8 +55,13 @@ app.add_middleware(
     max_age=3600,  # Cache preflight for 1 hour
 )
 
-# Include routers
-app.include_router(chat_router)
+# Include routers - wrapped in try/except to not block CORS
+try:
+    app.include_router(chat_router)
+    logger.info("Chat router included successfully")
+except Exception as e:
+    logger.error(f"Failed to include chat router: {e}")
+    logger.warning("API will start but chat endpoints may not be available")
 
 
 @app.on_event("startup")
@@ -107,10 +124,20 @@ async def health_check():
 @app.get("/")
 async def root():
     """Root endpoint."""
+    try:
+        cors_info = {
+            "cors_origins": settings.cors_origins,
+            "cors_origins_list": settings.cors_origins_list
+        }
+    except Exception:
+        cors_info = {
+            "cors_origins": "*",
+            "cors_origins_list": ["*"]
+        }
+
     return {
         "message": "RAG Chatbot API",
         "version": "1.0.0",
         "docs": "/docs",
-        "cors_origins": settings.cors_origins,
-        "cors_origins_list": settings.cors_origins_list
+        **cors_info
     }
