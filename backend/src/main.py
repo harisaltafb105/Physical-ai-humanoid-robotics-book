@@ -29,10 +29,15 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CORS Configuration - Railway Production
-# Allow all origins for Vercel frontend
+# Read from environment variable CORS_ORIGINS, default to ["*"]
+try:
+    cors_origins = settings.cors_origins_list if settings.cors_origins_list else ["*"]
+except Exception:
+    cors_origins = ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=cors_origins,
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
